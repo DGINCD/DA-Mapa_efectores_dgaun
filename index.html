@@ -513,37 +513,34 @@
                 { key: 'numero_sede', label: 'Numero de sede', width: 14 },
                 { key: 'Actor', label: 'Tipo de efector', width: 30 },
                 { key: 'Sede', label: 'Nombre de la sede', width: 36 },
-                { key: 'direccion_mapa', label: 'Direccion', width: 34 },
-                { key: 'calle_normalizada', label: 'Calle normalizada', width: 28 },
-                { key: 'Barrio', label: 'Barrio', width: 20 },
+                { key: 'area', label: 'Area', width: 24 },
+                { key: 'referente_area', label: 'Referente area', width: 24 },
+                { key: 'area_macro', label: 'Area macro', width: 34 },
+                { key: 'referente_area_macro', label: 'Referente area macro', width: 30 },
+                { key: 'calle_normalizada', label: 'Calle normalizada', width: 30 },
+                { key: 'altura', label: 'Altura', width: 10 },
                 { key: 'barrio_normalizado', label: 'Barrio normalizado', width: 22 },
                 { key: 'comuna_normalizada', label: 'Comuna', width: 10 },
-                { key: 'latitud', label: 'Latitud', width: 16 },
-                { key: 'longitud', label: 'Longitud', width: 16 },
-                { key: 'visitado', label: 'Visitado', width: 12 },
-                { key: 'fecha_visita', label: 'Fecha de visita', width: 16 },
-                { key: 'observacion_visita', label: 'Observacion visita', width: 34 },
                 { key: 'dias_horarios', label: 'Dias y horarios', width: 24 },
                 { key: 'telefono_institucional', label: 'Telefono institucional', width: 24 },
                 { key: 'mail_institucional', label: 'Mail institucional', width: 30 },
-                { key: 'area', label: 'Area', width: 24 },
-                { key: 'referente_area', label: 'Referente area', width: 24 },
-                { key: 'area_macro', label: 'Area macro', width: 32 },
-                { key: 'referente_area_macro', label: 'Referente area macro', width: 28 },
                 { key: 'observaciones', label: 'Observaciones', width: 34 },
-                { key: 'estado_para_mapa', label: 'Estado para mapa', width: 20 },
-                { key: 'confianza_match', label: 'Confianza match', width: 18 },
-                { key: 'resultado_validacion', label: 'Resultado validacion', width: 28 },
-                { key: 'motivo_confianza', label: 'Motivo confianza', width: 40 }
+                { key: 'visitado', label: 'Visitado', width: 12 },
+                { key: 'fecha_visita', label: 'Fecha de visita', width: 16 },
+                { key: 'observacion_visita', label: 'Observacion visita', width: 34 },
+                { key: 'latitud', label: 'Latitud', width: 16 },
+                { key: 'longitud', label: 'Longitud', width: 16 }
             ];
             applyFilters();
             var rows = efectorLayers.filter(layerMatches).map(function(layer) { return layer.feature.properties || {}; });
             var blob = buildXlsx(rows, columns);
             var url = URL.createObjectURL(blob);
             var link = document.createElement('a');
-            var today = new Date().toISOString().slice(0, 10);
+            var now = new Date();
+            var pad = function(value) { return String(value).padStart(2, '0'); };
+            var stamp = now.getFullYear() + pad(now.getMonth() + 1) + pad(now.getDate()) + '_' + pad(now.getHours()) + pad(now.getMinutes()) + pad(now.getSeconds());
             link.href = url;
-            link.download = 'efectores_mapa_' + today + '.xlsx';
+            link.download = 'DGINC-DA-MAPA_EFECTORES_DGAUN-' + stamp + '.xlsx';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -727,6 +724,7 @@
         </script>
     </body>
 </html>
+
 
 
 
