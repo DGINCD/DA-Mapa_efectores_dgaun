@@ -1,0 +1,732 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet.photon.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        #map {
+            position: fixed;
+            inset: 0;
+        }
+        </style>
+        <title>Mapa de efectores DGAUN</title>
+    </head>
+    <body>
+        <div id="map"></div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/L.Control.Layers.Tree.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet.photon.js"></script>
+        <script src="data/base_efectores_mapa_v4_qgis_web_1.js"></script>
+        <script>
+        var initialBounds = [[-34.69204871895268,-58.48338754407871],[-34.592855151204745,-58.39069355486265]];
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds(initialBounds);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // modify popup if contains media
+        function addClassToPopupIfMedia(content, popup) {
+            var tempDiv = document.createElement('div');
+            tempDiv.innerHTML = content;
+            var imgTd = tempDiv.querySelector('td img');
+            if (imgTd) {
+                var src = imgTd.getAttribute('src');
+                if (/\.(jpg|jpeg|png|gif|bmp|webp|avif)$/i.test(src)) {
+                    popup._contentNode.classList.add('media');
+                    var img = popup._contentNode.querySelector('td img');
+                    if (img) {
+                        // If already loaded (cache), update immediately
+                        if (img.complete && img.naturalHeight > 0) {
+                            popup.update();
+                        } else {
+                            img.addEventListener('load', function() {
+                                popup.update();
+                            });
+                            img.addEventListener('error', function() {
+                                popup.update();
+                            });
+                        }
+                    }
+                } else if (/\.(mp3|wav|ogg|aac)$/i.test(src)) {
+                    var audio = document.createElement('audio');
+                    audio.controls = true;
+                    audio.src = src;
+                    imgTd.parentNode.replaceChild(audio, imgTd);
+                    popup._contentNode.classList.add('media');
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else if (/\.(mp4|webm|ogg|mov)$/i.test(src)) {
+                    var video = document.createElement('video');
+                    video.controls = true;
+                    video.src = src;
+                    video.style.width = "400px";
+                    video.style.height = "300px";
+                    video.style.maxHeight = "60vh";
+                    video.style.maxWidth = "60vw";
+                    imgTd.parentNode.replaceChild(video, imgTd);
+                    popup._contentNode.classList.add('media');
+                    // Aggiorna il popup quando il video carica i metadati
+                    video.addEventListener('loadedmetadata', function() {
+                        popup.update();
+                    });
+                    setTimeout(function() {
+                        popup.setContent(tempDiv.innerHTML);
+                        popup.update();
+                    }, 10);
+                } else {
+                    popup._contentNode.classList.remove('media');
+                }
+            } else {
+                popup._contentNode.classList.remove('media');
+            }
+        }
+        var zoomControl = L.control.zoom({
+            position: 'bottomright'
+        }).addTo(map);
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_0;
+        map.addLayer(layer_OpenStreetMap_0);
+        function formatValue(value) {
+            if (value === null || value === undefined || value === '' || String(value).toUpperCase() === 'NULL') {
+                return '';
+            }
+            return autolinker.link(String(value).toLocaleString());
+        }
+
+        function visitadoTexto(value) {
+            var normalized = String(value || '').toLowerCase();
+            return normalized === 'true' || normalized === 'si' || normalized === 'sí' || normalized === '1' ? 'Si' : 'No';
+        }
+
+        function actorIcon(actor) {
+            var icons = {
+                'Hospitales': 'fa-hospital',
+                'CESAC': 'fa-briefcase-medical',
+                'Centros de Primera Infancia': 'fa-child',
+                'Centros Integrales de la Mujer': 'fa-hands-helping',
+                'Comisarias': 'fa-shield-alt',
+                'Estaciones saludables': 'fa-heartbeat',
+                'Sedes y Subsedes Comunales': 'fa-landmark',
+                'Sedes de Atención Social': 'fa-users',
+                'Ministerio Público Tutelar': 'fa-balance-scale',
+                'Centro de Cuidado Integral (CCI)': 'fa-home',
+                'CEMAR': 'fa-hand-holding-heart',
+                'Escuelas de educación especial': 'fa-school',
+                'Mas servicios en tu barrio': 'fa-map-marker-alt'
+            };
+            return icons[actor] || 'fa-map-marker-alt';
+        }
+
+        function markerColor(props) {
+            return props && props['color_mapa'] ? props['color_mapa'] : (props && props['color_efector'] ? props['color_efector'] : '#5ba5d3');
+        }
+
+        function createEfectorIcon(props) {
+            var actor = props && props['Actor'] ? props['Actor'] : '';
+            var number = props && props['numero_sede'] !== null && props['numero_sede'] !== undefined
+                ? String(props['numero_sede']).replace(/\.0$/, '')
+                : '';
+            var visited = visitadoTexto(props && props['visitado']) === 'Si';
+            var color = markerColor(props);
+            var html = '<span class="ef-map-marker' + (visited ? ' is-visited' : '') + '" style="background:' + color + '">' +
+                '<i class="fa ' + actorIcon(actor) + '"></i>' +
+                '<b>' + number + '</b>' +
+                '</span>';
+            return L.divIcon({
+                html: html,
+                className: 'ef-div-icon',
+                iconSize: [30, 30],
+                iconAnchor: [15, 15],
+                popupAnchor: [0, -16]
+            });
+        }
+
+        function buildPopupContent(props) {
+            var rows = [
+                ['Numero de sede', props['numero_sede']],
+                ['Direccion', props['direccion_mapa']],
+                ['Barrio', props['Barrio']],
+                ['Comuna', props['comuna_normalizada']],
+                ['Dias y horarios', props['dias_horarios']],
+                ['Telefono institucional', props['telefono_institucional']],
+                ['Mail institucional', props['mail_institucional']],
+                ['Area', props['area']],
+                ['Referente area', props['referente_area']],
+                ['Area macro', props['area_macro']],
+                ['Referente area macro', props['referente_area_macro']],
+                ['Observaciones', props['observaciones']],
+                ['Visitado', visitadoTexto(props['visitado'])],
+                ['Fecha de visita', props['fecha_visita']],
+                ['Observacion de visita', props['observacion_visita']]
+            ];
+
+            var actor = props['Actor'] || 'Efector';
+            var title = props['Sede'] || 'Sede';
+            var badgeClass = visitadoTexto(props['visitado']) === 'Si' ? 'visited' : 'pending';
+            var html = '<div class="ef-popup">' +
+                '<div class="ef-popup-head">' +
+                '<span class="ef-popup-icon" style="background:' + (props['color_mapa'] || '#22313f') + '"><i class="fa ' + actorIcon(actor) + '"></i></span>' +
+                '<div><strong>' + formatValue(title) + '</strong><span>' + formatValue(actor) + '</span></div>' +
+                '<em class="' + badgeClass + '">' + (badgeClass === 'visited' ? 'Visitado' : 'No visitado') + '</em>' +
+                '</div><table>';
+
+            rows.forEach(function(row) {
+                var value = formatValue(row[1]);
+                if (value !== '') {
+                    html += '<tr><th scope="row">' + row[0] + '</th><td>' + value + '</td></tr>';
+                }
+            });
+            html += '</table></div>';
+            return html;
+        }
+
+        function pop_base_efectores_mapa_v4_qgis_web_1(feature, layer) {
+            var content = buildPopupContent(feature.properties || {});
+            layer.bindPopup(content, { maxHeight: 460, maxWidth: 390 });
+        }
+
+        function style_base_efectores_mapa_v4_qgis_web_1_0(feature) {
+            var fill = feature && feature.properties && feature.properties['color_mapa']
+                ? feature.properties['color_mapa']
+                : '#5ba5d3';
+
+            return {
+                pane: 'pane_base_efectores_mapa_v4_qgis_web_1',
+                radius: 7.0,
+                opacity: 1,
+                color: '#333333',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.2,
+                fill: true,
+                fillOpacity: 0.95,
+                fillColor: fill,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_base_efectores_mapa_v4_qgis_web_1');
+        map.getPane('pane_base_efectores_mapa_v4_qgis_web_1').style.zIndex = 401;
+        map.getPane('pane_base_efectores_mapa_v4_qgis_web_1').style['mix-blend-mode'] = 'normal';
+        var layer_base_efectores_mapa_v4_qgis_web_1 = new L.geoJson(json_base_efectores_mapa_v4_qgis_web_1, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_base_efectores_mapa_v4_qgis_web_1',
+            layerName: 'layer_base_efectores_mapa_v4_qgis_web_1',
+            pane: 'pane_base_efectores_mapa_v4_qgis_web_1',
+            onEachFeature: pop_base_efectores_mapa_v4_qgis_web_1,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.marker(latlng, { icon: createEfectorIcon(feature.properties || {}) });
+            },
+        });
+        bounds_group.addLayer(layer_base_efectores_mapa_v4_qgis_web_1);
+        map.addLayer(layer_base_efectores_mapa_v4_qgis_web_1);
+        var efectorLayers = [];
+        layer_base_efectores_mapa_v4_qgis_web_1.eachLayer(function(layer) {
+            efectorLayers.push(layer);
+        });
+
+        function normalizeText(value) {
+            return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        function uniqueSorted(values, numeric) {
+            var unique = Array.from(new Set(values.filter(function(v) {
+                return v !== null && v !== undefined && String(v).trim() !== '' && String(v).toUpperCase() !== 'NULL';
+            }).map(function(v) {
+                var s = String(v).trim();
+                return s.endsWith('.0') ? s.slice(0, -2) : s;
+            })));
+            return unique.sort(function(a, b) {
+                return numeric ? (Number(a) - Number(b)) : a.localeCompare(b, 'es');
+            });
+        }
+
+        function createOption(value, label) {
+            var option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            return option;
+        }
+
+        function checkedValues(name) {
+            return Array.from(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function(input) {
+                return input.value;
+            });
+        }
+
+        function renderCheckboxList(container, name, values) {
+            container.innerHTML = values.map(function(value) {
+                var id = name + '-' + normalizeText(value).replace(/[^a-z0-9]+/g, '-');
+                return '<label class="ef-check" for="' + id + '">' +
+                    '<input id="' + id + '" type="checkbox" name="' + name + '" value="' + String(value).replace(/"/g, '&quot;') + '">' +
+                    '<span>' + value + '</span>' +
+                    '</label>';
+            }).join('');
+        }
+
+        function escapeXml(value) {
+            if (value === null || value === undefined || String(value).toUpperCase() === 'NULL') return '';
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&apos;');
+        }
+
+        function crc32(bytes) {
+            var table = crc32.table || (crc32.table = (function() {
+                var c;
+                var table = [];
+                for (var n = 0; n < 256; n++) {
+                    c = n;
+                    for (var k = 0; k < 8; k++) c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+                    table[n] = c >>> 0;
+                }
+                return table;
+            })());
+            var crc = 0 ^ (-1);
+            for (var i = 0; i < bytes.length; i++) crc = (crc >>> 8) ^ table[(crc ^ bytes[i]) & 0xFF];
+            return (crc ^ (-1)) >>> 0;
+        }
+
+        function dosDateTime(date) {
+            var seconds = Math.floor(date.getSeconds() / 2);
+            var time = (date.getHours() << 11) | (date.getMinutes() << 5) | seconds;
+            var day = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate();
+            return { time: time, day: day };
+        }
+
+        function writeUInt16To(arr, offset, value) {
+            arr[offset] = value & 255;
+            arr[offset + 1] = (value >>> 8) & 255;
+        }
+
+        function writeUInt32To(arr, offset, value) {
+            arr[offset] = value & 255;
+            arr[offset + 1] = (value >>> 8) & 255;
+            arr[offset + 2] = (value >>> 16) & 255;
+            arr[offset + 3] = (value >>> 24) & 255;
+        }
+
+        function asciiBytes(text) {
+            var arr = new Uint8Array(text.length);
+            for (var i = 0; i < text.length; i++) arr[i] = text.charCodeAt(i) & 255;
+            return arr;
+        }
+
+        function concatBytes(parts) {
+            var total = parts.reduce(function(sum, part) { return sum + part.length; }, 0);
+            var out = new Uint8Array(total);
+            var offset = 0;
+            parts.forEach(function(part) {
+                out.set(part, offset);
+                offset += part.length;
+            });
+            return out;
+        }
+
+        function zipFiles(files) {
+            var encoder = new TextEncoder();
+            var now = dosDateTime(new Date());
+            var localParts = [];
+            var centralParts = [];
+            var offset = 0;
+            files.forEach(function(file) {
+                var name = encoder.encode(file.name);
+                var data = encoder.encode(file.content);
+                var crc = crc32(data);
+
+                var localHeader = new Uint8Array(30 + name.length);
+                localHeader.set(asciiBytes('PK\x03\x04'), 0);
+                writeUInt16To(localHeader, 4, 20);
+                writeUInt16To(localHeader, 6, 2048);
+                writeUInt16To(localHeader, 8, 0);
+                writeUInt16To(localHeader, 10, now.time);
+                writeUInt16To(localHeader, 12, now.day);
+                writeUInt32To(localHeader, 14, crc);
+                writeUInt32To(localHeader, 18, data.length);
+                writeUInt32To(localHeader, 22, data.length);
+                writeUInt16To(localHeader, 26, name.length);
+                writeUInt16To(localHeader, 28, 0);
+                localHeader.set(name, 30);
+                localParts.push(localHeader, data);
+
+                var centralHeader = new Uint8Array(46 + name.length);
+                centralHeader.set(asciiBytes('PK\x01\x02'), 0);
+                writeUInt16To(centralHeader, 4, 20);
+                writeUInt16To(centralHeader, 6, 20);
+                writeUInt16To(centralHeader, 8, 2048);
+                writeUInt16To(centralHeader, 10, 0);
+                writeUInt16To(centralHeader, 12, now.time);
+                writeUInt16To(centralHeader, 14, now.day);
+                writeUInt32To(centralHeader, 16, crc);
+                writeUInt32To(centralHeader, 20, data.length);
+                writeUInt32To(centralHeader, 24, data.length);
+                writeUInt16To(centralHeader, 28, name.length);
+                writeUInt16To(centralHeader, 30, 0);
+                writeUInt16To(centralHeader, 32, 0);
+                writeUInt16To(centralHeader, 34, 0);
+                writeUInt16To(centralHeader, 36, 0);
+                writeUInt32To(centralHeader, 38, 0);
+                writeUInt32To(centralHeader, 42, offset);
+                centralHeader.set(name, 46);
+                centralParts.push(centralHeader);
+                offset += localHeader.length + data.length;
+            });
+            var central = concatBytes(centralParts);
+            var end = new Uint8Array(22);
+            end.set(asciiBytes('PK\x05\x06'), 0);
+            writeUInt16To(end, 4, 0);
+            writeUInt16To(end, 6, 0);
+            writeUInt16To(end, 8, files.length);
+            writeUInt16To(end, 10, files.length);
+            writeUInt32To(end, 12, central.length);
+            writeUInt32To(end, 16, offset);
+            writeUInt16To(end, 20, 0);
+            return new Blob([concatBytes(localParts), central, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        }
+
+        function columnLetter(index) {
+            var letter = '';
+            while (index >= 0) {
+                letter = String.fromCharCode((index % 26) + 65) + letter;
+                index = Math.floor(index / 26) - 1;
+            }
+            return letter;
+        }
+
+        function buildXlsx(rows, columns) {
+            var sheetRows = [];
+            var headerCells = columns.map(function(col, i) {
+                var ref = columnLetter(i) + '1';
+                return '<c r="' + ref + '" t="inlineStr"><is><t>' + escapeXml(col.label) + '</t></is></c>';
+            }).join('');
+            sheetRows.push('<row r="1">' + headerCells + '</row>');
+            rows.forEach(function(props, rowIndex) {
+                var r = rowIndex + 2;
+                var cells = columns.map(function(col, i) {
+                    var ref = columnLetter(i) + r;
+                    var raw = props[col.key];
+                    if (raw === null || raw === undefined || String(raw).toUpperCase() === 'NULL') raw = '';
+                    if (col.key === 'visitado') raw = visitadoTexto(raw);
+                    return '<c r="' + ref + '" t="inlineStr"><is><t>' + escapeXml(raw) + '</t></is></c>';
+                }).join('');
+                sheetRows.push('<row r="' + r + '">' + cells + '</row>');
+            });
+            var lastCol = columnLetter(columns.length - 1);
+            var lastRow = Math.max(rows.length + 1, 1);
+            var sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+                '<dimension ref="A1:' + lastCol + lastRow + '"/>' +
+                '<sheetViews><sheetView workbookViewId="0"/></sheetViews>' +
+                '<sheetFormatPr defaultRowHeight="15"/>' +
+                '<cols>' + columns.map(function(col, i) { return '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + (col.width || 18) + '" customWidth="1"/>'; }).join('') + '</cols>' +
+                '<sheetData>' + sheetRows.join('') + '</sheetData>' +
+                '<autoFilter ref="A1:' + lastCol + lastRow + '"/>' +
+                '<pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/>' +
+                '</worksheet>';
+            var workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+                '<sheets><sheet name="Efectores" sheetId="1" r:id="rId1"/></sheets></workbook>';
+            var rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+            var workbookRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+                '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>';
+            var contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+                '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' +
+                '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' +
+                '<Default Extension="xml" ContentType="application/xml"/>' +
+                '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' +
+                '<Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>' +
+                '</Types>';
+            return zipFiles([
+                { name: '[Content_Types].xml', content: contentTypes },
+                { name: '_rels/.rels', content: rels },
+                { name: 'xl/workbook.xml', content: workbook },
+                { name: 'xl/_rels/workbook.xml.rels', content: workbookRels },
+                { name: 'xl/worksheets/sheet1.xml', content: sheet }
+            ]);
+        }
+
+        function exportVisibleExcel() {
+            var columns = [
+                { key: 'numero_sede', label: 'Numero de sede', width: 14 },
+                { key: 'Actor', label: 'Tipo de efector', width: 30 },
+                { key: 'Sede', label: 'Nombre de la sede', width: 36 },
+                { key: 'direccion_mapa', label: 'Direccion', width: 34 },
+                { key: 'calle_normalizada', label: 'Calle normalizada', width: 28 },
+                { key: 'Barrio', label: 'Barrio', width: 20 },
+                { key: 'barrio_normalizado', label: 'Barrio normalizado', width: 22 },
+                { key: 'comuna_normalizada', label: 'Comuna', width: 10 },
+                { key: 'latitud', label: 'Latitud', width: 16 },
+                { key: 'longitud', label: 'Longitud', width: 16 },
+                { key: 'visitado', label: 'Visitado', width: 12 },
+                { key: 'fecha_visita', label: 'Fecha de visita', width: 16 },
+                { key: 'observacion_visita', label: 'Observacion visita', width: 34 },
+                { key: 'dias_horarios', label: 'Dias y horarios', width: 24 },
+                { key: 'telefono_institucional', label: 'Telefono institucional', width: 24 },
+                { key: 'mail_institucional', label: 'Mail institucional', width: 30 },
+                { key: 'area', label: 'Area', width: 24 },
+                { key: 'referente_area', label: 'Referente area', width: 24 },
+                { key: 'area_macro', label: 'Area macro', width: 32 },
+                { key: 'referente_area_macro', label: 'Referente area macro', width: 28 },
+                { key: 'observaciones', label: 'Observaciones', width: 34 },
+                { key: 'estado_para_mapa', label: 'Estado para mapa', width: 20 },
+                { key: 'confianza_match', label: 'Confianza match', width: 18 },
+                { key: 'resultado_validacion', label: 'Resultado validacion', width: 28 },
+                { key: 'motivo_confianza', label: 'Motivo confianza', width: 40 }
+            ];
+            applyFilters();
+            var rows = efectorLayers.filter(layerMatches).map(function(layer) { return layer.feature.properties || {}; });
+            var blob = buildXlsx(rows, columns);
+            var url = URL.createObjectURL(blob);
+            var link = document.createElement('a');
+            var today = new Date().toISOString().slice(0, 10);
+            link.href = url;
+            link.download = 'efectores_mapa_' + today + '.xlsx';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+        }
+
+        function visitSummary(layers) {
+            var source = layers || json_base_efectores_mapa_v4_qgis_web_1.features;
+            var total = 0;
+            var visited = 0;
+            source.forEach(function(item) {
+                var p = item.feature ? item.feature.properties || {} : item.properties || {};
+                total += 1;
+                if (String(p.visitado || '').toLowerCase() === 'true') {
+                    visited += 1;
+                }
+            });
+            return { total: total, visited: visited, notVisited: total - visited };
+        }
+
+        function actorSummary(layers) {
+            var source = layers || json_base_efectores_mapa_v4_qgis_web_1.features;
+            var summary = {};
+            source.forEach(function(item) {
+                var p = item.feature ? item.feature.properties || {} : item.properties || {};
+                var actor = p.Actor || 'Sin tipo';
+                if (!summary[actor]) {
+                    summary[actor] = { count: 0, color: p.color_efector || p.color_mapa || '#64748b' };
+                }
+                summary[actor].count += 1;
+            });
+            return summary;
+        }
+
+        function renderLegend(summary) {
+            return Object.keys(summary).sort(function(a, b) { return a.localeCompare(b, 'es'); }).map(function(actor) {
+                return '<div class="ef-ref"><i class="fa ' + actorIcon(actor) + '" style="background:' + summary[actor].color + '"></i><span>' + actor + '</span><b>' + summary[actor].count + '</b></div>';
+            }).join('') + '<div class="ef-ref"><i class="fa fa-check" style="background:#00A650"></i><span>Visitado</span><b></b></div>';
+        }
+
+        function updatePanelStats(visibleLayers) {
+            var visits = visitSummary(visibleLayers);
+            var totalEl = document.getElementById('ef-stat-total');
+            var visitedEl = document.getElementById('ef-stat-visited');
+            var notVisitedEl = document.getElementById('ef-stat-not-visited');
+            if (totalEl) totalEl.textContent = visits.total;
+            if (visitedEl) visitedEl.textContent = visits.visited;
+            if (notVisitedEl) notVisitedEl.textContent = visits.notVisited;
+            var legendList = document.getElementById('ef-legend-list');
+            if (legendList) legendList.innerHTML = renderLegend(actorSummary(visibleLayers));
+        }
+
+        var control = L.control({ position: 'topleft' });
+        control.onAdd = function() {
+            var div = L.DomUtil.create('div', 'ef-panel');
+            L.DomEvent.disableClickPropagation(div);
+            L.DomEvent.disableScrollPropagation(div);
+            var actors = uniqueSorted(json_base_efectores_mapa_v4_qgis_web_1.features.map(function(f) { return f.properties.Actor; }), false);
+            var comunas = uniqueSorted(json_base_efectores_mapa_v4_qgis_web_1.features.map(function(f) { return f.properties.comuna_normalizada; }), true);
+            var summary = actorSummary();
+            var visits = visitSummary();
+
+            div.innerHTML = '<div class="ef-title"><strong>Mapa de efectores</strong><span>DGAUN</span></div>' +
+                '<div class="ef-search-row"><input id="ef-search" type="search" placeholder="Numero o nombre de sede"><button id="ef-search-btn" type="button">Buscar</button></div>' +
+                '<div id="ef-search-result" class="ef-search-result"></div>' +
+                '<div class="ef-filter-grid">' +
+                '<fieldset class="ef-check-group"><legend>Tipo de efector</legend><div id="filter-actor-list" class="ef-check-list"></div></fieldset>' +
+                '<label>Visitado<select id="filter-visitado"><option value="">Todos</option><option value="false">No visitados</option><option value="true">Visitados</option></select></label>' +
+                '<fieldset class="ef-check-group"><legend>Comuna</legend><div id="filter-comuna-list" class="ef-check-list ef-check-list-compact"></div></fieldset>' +
+                '</div>' +
+                '<div class="ef-actions"><button id="filter-apply" type="button">Aplicar filtros</button><button id="filter-reset" type="button">Limpiar</button></div>' +
+                '<button id="export-excel" class="ef-export" type="button">Exportar Excel</button>' +
+                '<div id="filter-count" class="ef-count"></div>' +
+                '<div class="ef-visit-card" aria-label="Resumen de visitas">' +
+                '<div><span>Total efectores</span><strong id="ef-stat-total">' + visits.total + '</strong></div>' +
+                '<div><span>Visitados</span><strong id="ef-stat-visited">' + visits.visited + '</strong></div>' +
+                '<div><span>No visitados</span><strong id="ef-stat-not-visited">' + visits.notVisited + '</strong></div>' +
+                '</div>' +
+                '<div class="ef-refs"><strong>Referencias</strong><div id="ef-legend-list"></div></div>';
+
+            renderCheckboxList(div.querySelector('#filter-actor-list'), 'filter-actor', actors);
+            renderCheckboxList(div.querySelector('#filter-comuna-list'), 'filter-comuna', comunas);
+            var legendList = div.querySelector('#ef-legend-list');
+            legendList.innerHTML = renderLegend(summary);
+            return div;
+        };
+        control.addTo(map);
+
+        function layerMatches(layer) {
+            var p = layer.feature.properties || {};
+            var actors = checkedValues('filter-actor');
+            var visitado = document.getElementById('filter-visitado').value;
+            var comunas = checkedValues('filter-comuna');
+            var isVisited = String(p.visitado || '').toLowerCase() === 'true';
+            var comuna = String(p.comuna_normalizada || '').replace(/\.0$/, '');
+
+            if (actors.length && actors.indexOf(p.Actor) === -1) return false;
+            if (visitado && String(isVisited) !== visitado) return false;
+            if (comunas.length && comunas.indexOf(comuna) === -1) return false;
+            return true;
+        }
+
+        function applyFilters() {
+            var visibleLayers = [];
+            efectorLayers.forEach(function(layer) {
+                var match = layerMatches(layer);
+                if (match) {
+                    if (!layer_base_efectores_mapa_v4_qgis_web_1.hasLayer(layer)) {
+                        layer_base_efectores_mapa_v4_qgis_web_1.addLayer(layer);
+                    }
+                    visibleLayers.push(layer);
+                } else if (layer_base_efectores_mapa_v4_qgis_web_1.hasLayer(layer)) {
+                    layer_base_efectores_mapa_v4_qgis_web_1.removeLayer(layer);
+                }
+            });
+            document.getElementById('filter-count').textContent = visibleLayers.length + ' de ' + efectorLayers.length + ' efectores visibles';
+            updatePanelStats(visibleLayers);
+        }
+
+        function searchEfector() {
+            var query = normalizeText(document.getElementById('ef-search').value.trim());
+            var result = document.getElementById('ef-search-result');
+            if (!query) {
+                result.textContent = 'Ingrese numero o nombre de sede.';
+                return;
+            }
+            var found = efectorLayers.find(function(layer) {
+                var p = layer.feature.properties || {};
+                var numero = String(p.numero_sede || '').replace(/\.0$/, '');
+                return numero === query || normalizeText(p.Sede).indexOf(query) !== -1;
+            });
+            if (!found) {
+                result.textContent = 'No se encontraron sedes con ese criterio.';
+                return;
+            }
+            if (!layer_base_efectores_mapa_v4_qgis_web_1.hasLayer(found)) {
+                layer_base_efectores_mapa_v4_qgis_web_1.addLayer(found);
+            }
+            var p = found.feature.properties || {};
+            map.setView(found.getLatLng(), Math.max(map.getZoom(), 16));
+            found.openPopup();
+            result.innerHTML = '<strong>' + formatValue(p.Sede) + '</strong><span>' + formatValue(p.direccion_mapa) + '</span>';
+        }
+
+        document.getElementById('filter-apply').addEventListener('click', applyFilters);
+        document.getElementById('export-excel').addEventListener('click', exportVisibleExcel);
+        document.getElementById('filter-reset').addEventListener('click', function() {
+            document.querySelectorAll('input[name="filter-actor"], input[name="filter-comuna"]').forEach(function(input) { input.checked = false; });
+            document.getElementById('filter-visitado').value = '';
+            document.getElementById('ef-search').value = '';
+            document.getElementById('ef-search-result').textContent = '';
+            map.closePopup();
+            applyFilters();
+            map.fitBounds(initialBounds, { animate: true, padding: [24, 24] });
+        });
+        document.getElementById('ef-search-btn').addEventListener('click', searchEfector);
+        document.getElementById('ef-search').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') searchEfector();
+        });
+        applyFilters();
+        setBounds();
+        var i = 0;
+        layer_base_efectores_mapa_v4_qgis_web_1.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+        function updateZoomDensity() {
+            var container = map.getContainer();
+            var zoom = map.getZoom();
+            container.classList.toggle('ef-zoom-far', zoom < 13);
+            container.classList.toggle('ef-zoom-city', zoom < 11);
+        }
+        updateZoomDensity();
+        map.on("zoomend", updateZoomDensity);
+        </script>
+    </body>
+</html>
+
+
+
