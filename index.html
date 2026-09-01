@@ -29,7 +29,7 @@
         <div class="ef-mobile-topbar" aria-label="Controles moviles del mapa">
             <div class="ef-mobile-brand"><strong>Mapa de efectores</strong><span>DGAUN</span></div>
             <div class="ef-mobile-search"><input id="ef-mobile-search" type="search" placeholder="Numero o sede"><button id="ef-mobile-search-btn" type="button">Buscar</button></div>
-            <button id="ef-mobile-filter-toggle" class="ef-mobile-filter-toggle" type="button" aria-expanded="false">Filtros</button>
+            <div class="ef-mobile-actions"><button id="ef-mobile-filter-toggle" class="ef-mobile-filter-toggle" type="button" aria-expanded="false">Filtros</button><button id="ef-mobile-clear" class="ef-mobile-clear" type="button">Limpiar</button></div>
         </div>
         <div id="ef-mobile-panel-backdrop" class="ef-mobile-panel-backdrop"></div>
         <div id="map"></div>
@@ -710,24 +710,29 @@
         }
         document.getElementById('filter-apply').addEventListener('click', function() { applyFilters(); closeMobilePanelIfNeeded(); });
         document.getElementById('export-excel').addEventListener('click', exportVisibleExcel);
-        document.getElementById('filter-reset').addEventListener('click', function() {
+        function resetFiltersAndSearch() {
             document.querySelectorAll('input[name="filter-actor"], input[name="filter-comuna"]').forEach(function(input) { input.checked = false; });
             document.getElementById('filter-visitado').value = '';
             document.getElementById('ef-search').value = '';
-            document.getElementById('ef-mobile-search').value = '';
+            var mobileSearch = document.getElementById('ef-mobile-search');
+            if (mobileSearch) mobileSearch.value = '';
             document.getElementById('ef-search-result').textContent = '';
             map.closePopup();
             applyFilters();
             map.fitBounds(initialBounds, { animate: true, padding: [24, 24] });
             closeMobilePanelIfNeeded();
-        });
+        }
+
+        document.getElementById('filter-reset').addEventListener('click', resetFiltersAndSearch);
         document.getElementById('ef-search-btn').addEventListener('click', searchEfector);
         document.getElementById('ef-mobile-filter-toggle').addEventListener('click', function() { setMobilePanel(!document.body.classList.contains('ef-mobile-panel-open')); });
+        document.getElementById('ef-mobile-clear').addEventListener('click', resetFiltersAndSearch);
         document.getElementById('ef-mobile-panel-backdrop').addEventListener('click', function() { setMobilePanel(false); });
         document.getElementById('ef-mobile-panel-close').addEventListener('click', function() { setMobilePanel(false); });
         document.getElementById('ef-mobile-search-btn').addEventListener('click', function() {
             document.getElementById('ef-search').value = document.getElementById('ef-mobile-search').value;
             searchEfector();
+            closeMobilePanelIfNeeded();
         });
         document.getElementById('ef-mobile-search').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') {
@@ -762,6 +767,8 @@
         </script>
     </body>
 </html>
+
+
 
 
 
