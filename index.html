@@ -26,6 +26,12 @@
         <title>Mapa de efectores DGAUN</title>
     </head>
     <body>
+        <div class="ef-mobile-topbar" aria-label="Controles moviles del mapa">
+            <div class="ef-mobile-brand"><strong>Mapa de efectores</strong><span>DGAUN</span></div>
+            <div class="ef-mobile-search"><input id="ef-mobile-search" type="search" placeholder="Numero o sede"><button id="ef-mobile-search-btn" type="button">Buscar</button></div>
+            <button id="ef-mobile-filter-toggle" class="ef-mobile-filter-toggle" type="button" aria-expanded="false">Filtros</button>
+        </div>
+        <div id="ef-mobile-panel-backdrop" class="ef-mobile-panel-backdrop"></div>
         <div id="map"></div>
         <script src="js/qgis2web_expressions.js"></script>
         <script src="js/leaflet.js"></script>
@@ -596,6 +602,7 @@
         var control = L.control({ position: 'topleft' });
         control.onAdd = function() {
             var div = L.DomUtil.create('div', 'ef-panel');
+            div.id = 'ef-filter-panel';
             L.DomEvent.disableClickPropagation(div);
             L.DomEvent.disableScrollPropagation(div);
             var actors = uniqueSorted(json_base_efectores_mapa_v4_qgis_web_1.features.map(function(f) { return f.properties.Actor; }), false);
@@ -603,7 +610,8 @@
             var summary = actorSummary();
             var visits = visitSummary();
 
-            div.innerHTML = '<div class="ef-title"><strong>Mapa de efectores</strong><span>DGAUN</span></div>' +
+            div.innerHTML = '<div class="ef-mobile-sheet-handle" aria-hidden="true"></div>' +
+                '<div class="ef-title"><strong>Mapa de efectores</strong><span>DGAUN</span><button id="ef-mobile-panel-close" class="ef-mobile-panel-close" type="button" aria-label="Cerrar filtros">Cerrar</button></div>' +
                 '<div class="ef-search-row"><input id="ef-search" type="search" placeholder="Numero o nombre de sede"><button id="ef-search-btn" type="button">Buscar</button></div>' +
                 '<div id="ef-search-result" class="ef-search-result"></div>' +
                 '<div class="ef-filter-grid">' +
@@ -685,18 +693,48 @@
             result.innerHTML = '<strong>' + formatValue(p.Sede) + '</strong><span>' + formatValue(p.direccion_mapa) + '</span>';
         }
 
-        document.getElementById('filter-apply').addEventListener('click', applyFilters);
+
+        function isMobileLayout() {
+            return window.matchMedia('(max-width: 760px)').matches;
+        }
+
+        function setMobilePanel(open) {
+            document.body.classList.toggle('ef-mobile-panel-open', !!open);
+            var button = document.getElementById('ef-mobile-filter-toggle');
+            if (button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            setTimeout(function() { map.invalidateSize(); }, 220);
+        }
+
+        function closeMobilePanelIfNeeded() {
+            if (isMobileLayout()) setMobilePanel(false);
+        }
+        document.getElementById('filter-apply').addEventListener('click', function() { applyFilters(); closeMobilePanelIfNeeded(); });
         document.getElementById('export-excel').addEventListener('click', exportVisibleExcel);
         document.getElementById('filter-reset').addEventListener('click', function() {
             document.querySelectorAll('input[name="filter-actor"], input[name="filter-comuna"]').forEach(function(input) { input.checked = false; });
             document.getElementById('filter-visitado').value = '';
             document.getElementById('ef-search').value = '';
+            document.getElementById('ef-mobile-search').value = '';
             document.getElementById('ef-search-result').textContent = '';
             map.closePopup();
             applyFilters();
             map.fitBounds(initialBounds, { animate: true, padding: [24, 24] });
+            closeMobilePanelIfNeeded();
         });
         document.getElementById('ef-search-btn').addEventListener('click', searchEfector);
+        document.getElementById('ef-mobile-filter-toggle').addEventListener('click', function() { setMobilePanel(!document.body.classList.contains('ef-mobile-panel-open')); });
+        document.getElementById('ef-mobile-panel-backdrop').addEventListener('click', function() { setMobilePanel(false); });
+        document.getElementById('ef-mobile-panel-close').addEventListener('click', function() { setMobilePanel(false); });
+        document.getElementById('ef-mobile-search-btn').addEventListener('click', function() {
+            document.getElementById('ef-search').value = document.getElementById('ef-mobile-search').value;
+            searchEfector();
+        });
+        document.getElementById('ef-mobile-search').addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                document.getElementById('ef-search').value = document.getElementById('ef-mobile-search').value;
+                searchEfector();
+            }
+        });
         document.getElementById('ef-search').addEventListener('keydown', function(event) {
             if (event.key === 'Enter') searchEfector();
         });
@@ -724,6 +762,8 @@
         </script>
     </body>
 </html>
+
+
 
 
 
