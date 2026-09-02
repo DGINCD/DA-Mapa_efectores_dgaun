@@ -1,0 +1,13 @@
+# Carpeta lista para publicar.
+*.xlsx
+*.xls
+*.csv
+*.py
+*.ps1
+*.qgz
+*.qgs
+*.docx
+*backup*
+index_backup_*.html
+Thumbs.db
+Desktop.ini
