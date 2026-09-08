@@ -266,6 +266,35 @@
         map.createPane('pane_base_efectores_mapa_v4_qgis_web_1');
         map.getPane('pane_base_efectores_mapa_v4_qgis_web_1').style.zIndex = 401;
         map.getPane('pane_base_efectores_mapa_v4_qgis_web_1').style['mix-blend-mode'] = 'normal';
+        // Separa visualmente sólo los efectores que comparten dirección y coordenadas.
+        // El punto sigue representando la misma ubicación; el desplazamiento evita que
+        // los marcadores y sus etiquetas queden exactamente superpuestos.
+        var sharedPointGroups = {};
+        function sharedPointKey(feature) {
+            var props = feature.properties || {};
+            var group = String(props.grupo_direccion || '').trim();
+            var coords = feature.geometry && feature.geometry.coordinates;
+            if (!group || !coords || coords.length < 2) return '';
+            return group + '|' + Number(coords[0]).toFixed(5) + '|' + Number(coords[1]).toFixed(5);
+        }
+        json_base_efectores_mapa_v4_qgis_web_1.features.forEach(function(feature) {
+            var key = sharedPointKey(feature);
+            if (key) {
+                if (!sharedPointGroups[key]) sharedPointGroups[key] = [];
+                sharedPointGroups[key].push(feature);
+            }
+        });
+        function visualLatLng(feature, latlng) {
+            var key = sharedPointKey(feature);
+            var group = key ? sharedPointGroups[key] : null;
+            if (!group || group.length < 2) return latlng;
+            var index = group.indexOf(feature);
+            var angle = (index / group.length) * Math.PI * 2 - Math.PI / 2;
+            var radiusMeters = 18;
+            var latOffset = (radiusMeters / 111320) * Math.sin(angle);
+            var lonOffset = (radiusMeters / (111320 * Math.cos(latlng.lat * Math.PI / 180))) * Math.cos(angle);
+            return L.latLng(latlng.lat + latOffset, latlng.lng + lonOffset);
+        }
         var layer_base_efectores_mapa_v4_qgis_web_1 = new L.geoJson(json_base_efectores_mapa_v4_qgis_web_1, {
             attribution: '',
             interactive: true,
@@ -278,7 +307,7 @@
                     feature: feature,
                     variables: {}
                 };
-                return L.marker(latlng, { icon: createEfectorIcon(feature.properties || {}) });
+                return L.marker(visualLatLng(feature, latlng), { icon: createEfectorIcon(feature.properties || {}) });
             },
         });
         bounds_group.addLayer(layer_base_efectores_mapa_v4_qgis_web_1);
