@@ -307,7 +307,20 @@
                     feature: feature,
                     variables: {}
                 };
-                return L.marker(visualLatLng(feature, latlng), { icon: createEfectorIcon(feature.properties || {}) });
+                var marker = L.marker(visualLatLng(feature, latlng), { icon: createEfectorIcon(feature.properties || {}) });
+                var number = feature.properties && feature.properties['numero_sede'] !== null && feature.properties['numero_sede'] !== undefined
+                    ? String(feature.properties['numero_sede']).replace(/\.0$/, '')
+                    : '';
+                if (number) {
+                    marker.bindTooltip(number, {
+                        permanent: true,
+                        direction: 'top',
+                        offset: [0, -13],
+                        className: 'ef-mobile-number-label',
+                        interactive: false
+                    });
+                }
+                return marker;
             },
         });
         bounds_group.addLayer(layer_base_efectores_mapa_v4_qgis_web_1);

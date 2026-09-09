@@ -472,6 +472,22 @@ html, body, #map {
     .leaflet-tooltip {
         display: none;
     }
+    #map .leaflet-tooltip.ef-mobile-number-label,
+    #map:not(.ef-labels-visible) .leaflet-tooltip.ef-mobile-number-label {
+        display: block !important;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(15, 23, 42, 0.22);
+        border-radius: 999px;
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.22);
+        color: #172033;
+        font: 700 9px/1 Inter, "Segoe UI", Arial, sans-serif;
+        padding: 2px 4px;
+        white-space: nowrap;
+        pointer-events: none;
+    }
+    #map.ef-zoom-far .leaflet-tooltip.ef-mobile-number-label {
+        display: none !important;
+    }
 }
 
 #map:not(.ef-labels-visible) .leaflet-tooltip { display: none; }
